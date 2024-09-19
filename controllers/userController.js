@@ -36,6 +36,7 @@ exports.register = async (req, res) => {
 // login function :
 exports.login = async (req, res) => {
   const { email, password } = req.body;
+  console.log(req.body);
   // checking if the user exsiste in the database :
   const user = await User.findOne({ email: email });
   if (!user) {
@@ -61,12 +62,36 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
+// get all users :
 exports.getallusers = async (req, res) => {
   try {
     const users = await User.find();
     res.status(200).json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+// change password
+exports.changePassword = async (req, res) => {
+  const { oldpassword, newpassword, confirmnewpassword } = req.body;
+  const { userId } = req.params;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const correctPassword = await bcrypt.compare(oldpassword, user.password);
+    if (!correctPassword) {
+      return res.status(400).json({ message: "Wrong password" });
+    }
+    if (newpassword !== confirmnewpassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+    const hashedPassword = await bcrypt.hash(newpassword, 8);
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.log(err);
   }
 };
